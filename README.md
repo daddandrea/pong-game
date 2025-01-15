@@ -1,4 +1,4 @@
 # Pong game
 
 # To-do
-- [ ] Create window boundaries
+- [ ] Implement collider to check collision with Game Cage and put checks in game.cpp
