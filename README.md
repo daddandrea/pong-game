@@ -1,4 +1,6 @@
 # Pong game
 
 # To-do
-- [ ] Delete parry and increase speed only if ball hits the edge of the player
+- [ ] Create CPU character and implement his movement and decisions.
+- [ ] Increase menu size and organize the menu better.
+- [ ] Organize game state based on menu options.

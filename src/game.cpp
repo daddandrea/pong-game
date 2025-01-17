@@ -2,6 +2,7 @@
 #include "../include/essentials.h"
 #include "../include/ball.h"
 #include "../include/player.h"
+#include "../include/menu.h"
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <SDL2/SDL.h>
@@ -11,6 +12,7 @@
 #include <cmath>
 #include <cstdlib>
 
+GameMenu game_menu = GameMenu();
 Ball ball = Ball();
 Player player = Player();
 Player player2 = Player();
@@ -36,7 +38,7 @@ void draw_cage(Color color) {
 }
 
 void handle_collisions() {
-    if (ball.get_collider()->is_colliding(*player.get_collider())) {
+    if (ball.get_collider()->is_colliding(*player.get_collider()) || ball.get_collider()->is_colliding(*player2.get_collider())) {
         if (ball.get_hor_mov_state() == B_H_M_LEFT) {
             ball.set_hor_mov_state(B_H_M_RIGHT);
         } else if (ball.get_hor_mov_state() == B_H_M_RIGHT) {
@@ -59,11 +61,14 @@ void display() {
     Color cage_color = {1.0, 1.0, 1.0};
     draw_cage(cage_color);
 
-    handle_collisions();
+    if (game_menu.get_state() == G_S_PLAYING) {
+        handle_collisions();
+        ball.render(dt.count());
+        player.render(dt.count());
+        player2.render(dt.count());
+    }
 
-    ball.render(dt.count());
-    player.render(dt.count());
-    player2.render(dt.count());
+    game_menu.render();
 }
 
 void render_game() {
@@ -86,6 +91,7 @@ void render_game() {
     SDL_Event event;
 
     init();
+    game_menu.init(window, gl_context);
 
     while (is_running) {
         while (SDL_PollEvent(&event)) {
@@ -94,17 +100,25 @@ void render_game() {
                     is_running = false;
                     break;
                 case SDL_KEYDOWN:
-                    player.manage_key_down_movement(event.key.keysym.sym);
-                    player.manage_key_down_actions(event.key.keysym.sym, ball);
+                    if (game_menu.get_state() == G_S_PLAYING) {
+                        player.manage_key_down_movement(event.key.keysym.sym);
+                        player.manage_key_down_actions(event.key.keysym.sym, ball);
+                        player2.manage_key_down_movement(event.key.keysym.sym);
+                        player2.manage_key_down_actions(event.key.keysym.sym, ball);
+                    }
                     break;
                 case SDL_KEYUP:
-                    player.manage_key_up(event.key.keysym.sym);
+                    if (game_menu.get_state() == G_S_PLAYING) {
+                        player.manage_key_up(event.key.keysym.sym);
+                        player2.manage_key_up(event.key.keysym.sym);
+                    }
                     break;
             }
         }
         display();
         SDL_GL_SwapWindow(window);
     }
+    game_menu.cleanup();
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(window);
     SDL_Quit();
