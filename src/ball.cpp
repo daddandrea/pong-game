@@ -1,6 +1,7 @@
 #include "../include/ball.h"
 #include <GL/gl.h>
 #include <cmath>
+#include <iostream>
 #include <memory>
 
 #define BALL_STANDARD_COLOR 1.0, 0.0, 0.0
@@ -59,28 +60,57 @@ void Ball::draw_ball() {
     }
     glEnd();
 }
+void Ball::update_collisions() {
+    if (this->hor_mov_state == B_H_M_STATIONARY && this->ver_mov_state == B_V_M_STATIONARY) {
+        if (this->collider->is_colliding_with_cage() != CAGE_SIDE_NONE) {
+            this->pos = Vec2 {GAME_OBJECT_STANDARD_X, GAME_OBJECT_STANDARD_Y};
+        }
+    }
+    switch (this->get_collider()->is_colliding_with_cage()) {
+        case CAGE_SIDE_NONE:
+            break;
+        case CAGE_SIDE_TOP:
+            this->ver_mov_state = B_V_M_DOWN;
+            this->set_pos(Vec2 {this->pos.x, CAGE_HALF_HEIGHT - MARGIN - BALL_RADIUS});
+            break;
+        case CAGE_SIDE_BOTTOM:
+            this->ver_mov_state = B_V_M_UP;
+            this->set_pos(Vec2 {this->pos.x, -(CAGE_HALF_HEIGHT - MARGIN - BALL_RADIUS)});
+            break;
+        case CAGE_SIDE_LEFT:
+            this->hor_mov_state = B_H_M_STATIONARY;
+            this->ver_mov_state = B_V_M_STATIONARY;
+            std::cout << "Point for RIGHT" << std::endl;
+            break;
+        case CAGE_SIDE_RIGHT:
+            this->hor_mov_state = B_H_M_STATIONARY;
+            this->ver_mov_state = B_V_M_STATIONARY;
+            std::cout << "Point for LEFT" << std::endl;
+            break;
+    }
+}
 void Ball::update_movement(float dt) {
     if (this->hor_mov_state == B_H_M_STATIONARY && this->ver_mov_state == B_V_M_STATIONARY) {
-        this->reset_speed();
-        this->set_pos(Vec2 {BALL_DEFAULT_X, BALL_DEFAULT_Y});
+        this->reset_pos();
+        this->reset_speed_incr();
+    } else if (this->hor_mov_state != B_H_M_STATIONARY || this->ver_mov_state != B_V_M_STATIONARY) {
+        if (this->hor_mov_state == B_H_M_LEFT)
+            this->pos.x -= this->s.x * this->speed_mult * dt;
+        else if (this->hor_mov_state == B_H_M_RIGHT)
+            this->pos.x += this->s.x * this->speed_mult * dt;
+
+        if (this->ver_mov_state == B_V_M_DOWN)
+            this->pos.y -= this->s.y * this->speed_mult * dt;
+        else if (this->ver_mov_state == B_V_M_UP)
+            this->pos.y += this->s.y * this->speed_mult * dt;
     }
-
-    if (this->hor_mov_state == B_H_M_LEFT)
-        this->pos.x -= this->s.x * this->speed_mult * dt;
-    else if (this->hor_mov_state == B_H_M_RIGHT)
-        this->pos.y += this->s.x * this->speed_mult * dt;
-
-    if (this->ver_mov_state == B_V_M_DOWN)
-        this->pos.y -= this->s.y * this->speed_mult * dt;
-    else if (this->ver_mov_state == B_V_M_UP)
-        this->pos.y += this->s.y * this->speed_mult * dt;
 }
 void Ball::render(float dt) {
     glPushMatrix();
-    //glTranslatef(this->pos.x, this->pos.y, 0.0);
     draw_ball();
     draw_debug_info();
     glPopMatrix();
+    update_collisions();
     update_movement(dt);
     if (this->collider) {
         this->collider->set_position(this->pos);

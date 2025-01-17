@@ -15,7 +15,7 @@
 enum CharacterSide { C_S_LEFT, C_S_RIGHT };
 std::ostream& operator<<(std::ostream& os, CharacterSide side);
 
-enum CharacterVerticalMovementState { C_V_M_STATIONARY, C_V_M_MOVING_UP, C_V_M_MOVING_DOWN };
+enum CharacterVerticalMovementState { C_V_M_STATIONARY, C_V_M_MOVING_UP, C_V_M_MOVING_DOWN, C_V_M_STUCK_UP, C_V_M_STUCK_DOWN };
 std::ostream& operator<<(std::ostream& os, CharacterVerticalMovementState state);
 
 class Character : public GameObject {
@@ -29,6 +29,7 @@ protected:
     CharacterVerticalMovementState ver_mov_state;
     void draw_character();
     void update_movement(float dt) override;
+    void update_collisions();
     CharacterSide assign_side();
     void move_to_correct_side();
 public:

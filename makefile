@@ -4,7 +4,7 @@ CXXFLAGS = -std=c++17 -Wall -Wextra -g -Iinclude -I/usr/include/freetype2 `pkg-c
 LDFLAGS = `pkg-config --libs freetype2` -lGL -lGLU -lSDL2 -ldl -lfreetype
 
 # Source files and object files
-SRC = src/ball.cpp src/debugger.cpp src/game.cpp src/game_object.cpp src/main.cpp src/character.cpp src/player.cpp src/collider.cpp
+SRC = src/ball.cpp src/game.cpp src/game_object.cpp src/main.cpp src/character.cpp src/player.cpp src/collider.cpp
 OBJ_DIR = objects
 OBJ = $(patsubst src/%.cpp,$(OBJ_DIR)/%.o,$(SRC))
 

@@ -35,6 +35,16 @@ void draw_cage(Color color) {
     glEnd();
 }
 
+void handle_collisions() {
+    if (ball.get_collider()->is_colliding(*player.get_collider())) {
+        if (ball.get_hor_mov_state() == B_H_M_LEFT) {
+            ball.set_hor_mov_state(B_H_M_RIGHT);
+        } else if (ball.get_hor_mov_state() == B_H_M_RIGHT) {
+            ball.set_hor_mov_state(B_H_M_LEFT);
+        }
+    }
+}
+
 void display() {
     auto current_time = std::chrono::high_resolution_clock::now();
     static auto last_time = current_time;
@@ -49,12 +59,16 @@ void display() {
     Color cage_color = {1.0, 1.0, 1.0};
     draw_cage(cage_color);
 
+    handle_collisions();
+
     ball.render(dt.count());
     player.render(dt.count());
     player2.render(dt.count());
 }
 
 void render_game() {
+    srand(static_cast<unsigned>(time(0)));
+
     SDL_Init(SDL_INIT_EVERYTHING);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
@@ -80,7 +94,8 @@ void render_game() {
                     is_running = false;
                     break;
                 case SDL_KEYDOWN:
-                    player.manage_key_down(event.key.keysym.sym);
+                    player.manage_key_down_movement(event.key.keysym.sym);
+                    player.manage_key_down_actions(event.key.keysym.sym, ball);
                     break;
                 case SDL_KEYUP:
                     player.manage_key_up(event.key.keysym.sym);

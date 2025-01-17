@@ -1,12 +1,13 @@
 #pragma once
 
 #include "game_object.h"
+#include "game.h"
 #include <ostream>
 
 #define BALL_DEFAULT_X 0.0f
 #define BALL_DEFAULT_Y 0.0f
 #define BALL_RADIUS 0.3f
-#define BALL_SPEED_INCR 0.1f
+#define BALL_SPEED_INCR 1.0f
 
 enum BallHorizontalMovementState { B_H_M_STATIONARY, B_H_M_LEFT, B_H_M_RIGHT };
 std::ostream& operator<<(std::ostream& os, BallHorizontalMovementState state);
@@ -21,6 +22,7 @@ private:
     BallVerticalMovementState ver_mov_state;
     void draw_ball();
     void update_movement(float dt) override;
+    void update_collisions();
 public:
     void draw_debug_info() override;
     float get_radius();
