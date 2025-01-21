@@ -1,10 +1,10 @@
 # Compiler and linker settings
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -g -Iinclude -I/usr/include/freetype2 -Iexternal/imgui `pkg-config --cflags freetype2`
-LDFLAGS = `pkg-config --libs freetype2` -lGL -lGLU -lSDL2 -ldl -lfreetype
+CXXFLAGS = -std=c++17 -Wall -Wextra -g -Iinclude -Iexternal/imgui `pkg-config --cflags sdl2 SDL2_ttf freetype2`
+LDFLAGS = `pkg-config --libs sdl2 SDL2_ttf freetype2` -lGL -lGLU -ldl -lfreetype
 
 # Source files and object files
-SRC = src/ball.cpp src/game.cpp src/game_object.cpp src/main.cpp src/character.cpp src/player.cpp src/collider.cpp src/menu.cpp
+SRC = src/ball.cpp src/game.cpp src/game_object.cpp src/main.cpp src/character.cpp src/player.cpp src/collider.cpp src/menu.cpp src/text_renderer.cpp
 IMGUI_SRC = external/imgui/imgui.cpp external/imgui/imgui_demo.cpp external/imgui/imgui_draw.cpp external/imgui/imgui_tables.cpp external/imgui/imgui_widgets.cpp external/imgui/imgui_impl_sdl2.cpp external/imgui/imgui_impl_opengl2.cpp
 OBJ_DIR = objects
 OBJ = $(patsubst src/%.cpp,$(OBJ_DIR)/%.o,$(SRC)) $(patsubst external/imgui/%.cpp,$(OBJ_DIR)/%.o,$(IMGUI_SRC))

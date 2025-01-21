@@ -129,6 +129,7 @@ void GameMenu::render() {
 
 GameState GameMenu::get_state() const { return current_state; }
 GameMode GameMenu::get_mode() const { return selected_mode; }
+void GameMenu::set_state(GameState state) { this->current_state = state; }
 Color GameMenu::get_ball_color() const { return ball_color; }
 Color GameMenu::get_left_player_color() const { return left_player_color; }
 Color GameMenu::get_right_player_color() const { return right_player_color; }

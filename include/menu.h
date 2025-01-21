@@ -38,6 +38,7 @@ public:
     void handle_event(const SDL_Event& event);
     void render();
     GameState get_state() const;
+    void set_state(GameState state);
     GameMode get_mode() const;
     Color get_ball_color() const;
     Color get_left_player_color() const;

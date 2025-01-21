@@ -2,20 +2,25 @@
 #include "../include/essentials.h"
 #include "../include/ball.h"
 #include "../include/player.h"
+#include "../include/text_renderer.h"
 #include "../include/menu.h"
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_events.h>
+#include <SDL2/SDL_pixels.h>
+#include <SDL2/SDL_render.h>
 #include <SDL2/SDL_video.h>
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
+#include <iostream>
 
 GameMenu game_menu = GameMenu();
 Ball ball = Ball();
 Player player = Player();
 Player player2 = Player();
+TextRenderer* text_renderer = nullptr;
 
 void init() {
     glClearColor(0.0, 0.0, 0.0, 1.0);
@@ -24,6 +29,8 @@ void init() {
     gluPerspective(FOV_DEGREES, ASPECT_RATIO, NEAR_CLIPPING_PLANE, FAR_CLIPPING_PLANE);
     glMatrixMode(GL_MODELVIEW);
     glEnable(GL_DEPTH_TEST);
+
+    game_menu.set_state(GameState::G_S_PLAYING);
 }
 
 void draw_cage(Color color) {
@@ -66,7 +73,13 @@ void display() {
         ball.render(dt.count());
         player.render(dt.count());
         player2.render(dt.count());
+        SDL_Color red = {255, 0, 0, 255};
+        glDisable(GL_DEPTH_TEST);
+        text_renderer->render_text("Player 1: 0", 10, 10, red);
+        text_renderer->render_text("Player 2: 0", 10, 40, red);
+        glEnable(GL_DEPTH_TEST);
     }
+
 
     game_menu.render();
 }
@@ -86,6 +99,13 @@ void render_game() {
                                           SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
     SDL_GLContext gl_context = SDL_GL_CreateContext(window);
     SDL_GL_MakeCurrent(window, gl_context);
+
+    text_renderer = new TextRenderer(1920, 1080);
+
+    if (!text_renderer->load_font("/usr/share/fonts/TTF/JetBrainsMonoNerdFont-Regular.ttf", 100)) {
+        std::cerr << "Failed to load font" << std::endl;
+        return;
+    }
 
     bool is_running = true;
     SDL_Event event;
@@ -119,6 +139,9 @@ void render_game() {
         SDL_GL_SwapWindow(window);
     }
     game_menu.cleanup();
+
+    delete text_renderer;
+    text_renderer = nullptr;
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(window);
     SDL_Quit();
