@@ -111,6 +111,8 @@ This is a simple 2D Pong game created using **C++**, **OpenGL**, and **SDL2**. T
      - Move Up: `Up Arrow`
      - Move Down: `Down Arrow`
      - Parry: `Space`
+   - **Game menu**:
+     - Go to in-game menu: `Esc`
 
 ---
 
