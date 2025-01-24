@@ -38,8 +38,8 @@ This is a simple 2D Pong game created using **C++**, **OpenGL**, and **SDL2**. T
 
 2. **Clone the Repository**:
    ```bash
-   git clone <repository_url>
-   cd <repository_folder>
+   git clone https://github.com/daddandrea/pong-game
+   cd pong-game
    ```
 
 3. **Compile the Game**:
