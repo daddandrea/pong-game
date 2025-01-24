@@ -1,15 +1,24 @@
 #include "../include/collider.h"
-#include "../include/game.h"
 #include <algorithm>
 #include <cstdlib>
+
+bool RectangleCollider::contains(const Vec2& point) const {
+    float left   = position.x - half_width;
+    float right  = position.x + half_width;
+    float bottom = position.y - half_height;
+    float top    = position.y + half_height;
+
+    return (point.x >= left && point.x <= right &&
+            point.y >= bottom && point.y <= top);
+}
 
 bool RectangleCollider::is_colliding(const Collider& other) const {
     return check_collision_with_margin(other, 0.0f);
 }
 CageSide RectangleCollider::is_colliding_with_cage() const {
-    if (position.y - half_height <= -(CAGE_HALF_HEIGHT - MARGIN)) {
+    if (position.y - half_height <= -(get_cage_half_h() - MARGIN)) {
         return CAGE_SIDE_BOTTOM;
-    } else if (position.y + half_height >= CAGE_HALF_HEIGHT - MARGIN) {
+    } else if (position.y + half_height >= get_cage_half_h()- MARGIN) {
         return CAGE_SIDE_TOP;
     } else {
         return CAGE_SIDE_NONE;
@@ -54,17 +63,24 @@ float RectangleCollider::get_half_height() const {
 }
 RectangleCollider::RectangleCollider(Vec2 pos, float half_w, float half_h) : position(pos), half_width(half_w), half_height(half_h) {}
 
+bool CircleCollider::contains(const Vec2& point) const {
+    float dx = point.x - position.x;
+    float dy = point.y - position.y;
+    float distSq = dx * dx + dy * dy;
+
+    return distSq <= (radius * radius);
+}
 bool CircleCollider::is_colliding(const Collider& other) const {
     return check_collision_with_margin(other, 0.0f);
 }
 CageSide CircleCollider::is_colliding_with_cage() const {
-    if (position.x - radius <= -CAGE_HALF_WIDTH)
+    if (position.x - radius <= -get_cage_half_w())
         return CAGE_SIDE_LEFT;
-    else if (position.x + radius >= CAGE_HALF_WIDTH)
+    else if (position.x + radius >= get_cage_half_w())
         return CAGE_SIDE_RIGHT;
-    else if (position.y - radius <= -CAGE_HALF_HEIGHT)
+    else if (position.y - radius <= -get_cage_half_h())
         return CAGE_SIDE_BOTTOM;
-    else if (position.y + radius >= CAGE_HALF_HEIGHT)
+    else if (position.y + radius >= get_cage_half_h())
         return CAGE_SIDE_TOP;
     else
         return CAGE_SIDE_NONE;

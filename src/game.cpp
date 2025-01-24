@@ -1,13 +1,11 @@
 #include "../include/game.h"
-#include "../include/essentials.h"
-#include "../include/ball.h"
-#include "../include/player.h"
-#include "../include/text_renderer.h"
-#include "../include/menu.h"
+#include "../include/scene_manager.h"
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_events.h>
+#include <SDL2/SDL_keycode.h>
+#include <SDL2/SDL_mouse.h>
 #include <SDL2/SDL_pixels.h>
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_video.h>
@@ -16,11 +14,9 @@
 #include <cstdlib>
 #include <iostream>
 
-GameMenu game_menu = GameMenu();
-Ball ball = Ball();
-Player player = Player();
-Player player2 = Player();
-TextRenderer* text_renderer = nullptr;
+TextRenderer* text_renderer;
+SceneManager scene_manager;
+bool is_running;
 
 void init() {
     glClearColor(0.0, 0.0, 0.0, 1.0);
@@ -29,31 +25,18 @@ void init() {
     gluPerspective(FOV_DEGREES, ASPECT_RATIO, NEAR_CLIPPING_PLANE, FAR_CLIPPING_PLANE);
     glMatrixMode(GL_MODELVIEW);
     glEnable(GL_DEPTH_TEST);
-
-    game_menu.set_state(GameState::G_S_PLAYING);
 }
 
 void draw_cage(Color color) {
     glLineWidth(CAGE_LINE_WIDTH);
     glColor3f(color.r, color.g, color.b);
     glBegin(GL_LINE_LOOP);
-        glVertex3f(-CAGE_HALF_WIDTH,-CAGE_HALF_HEIGHT, 0.0);
-        glVertex3f( CAGE_HALF_WIDTH,-CAGE_HALF_HEIGHT, 0.0);
-        glVertex3f( CAGE_HALF_WIDTH, CAGE_HALF_HEIGHT, 0.0);
-        glVertex3f(-CAGE_HALF_WIDTH, CAGE_HALF_HEIGHT, 0.0);
+        glVertex3f(-get_cage_half_w(),-get_cage_half_h(), 0.0);
+        glVertex3f( get_cage_half_w(),-get_cage_half_h(), 0.0);
+        glVertex3f( get_cage_half_w(), get_cage_half_h(), 0.0);
+        glVertex3f(-get_cage_half_w(), get_cage_half_h(), 0.0);
     glEnd();
 }
-
-void handle_collisions() {
-    if (ball.get_collider()->is_colliding(*player.get_collider()) || ball.get_collider()->is_colliding(*player2.get_collider())) {
-        if (ball.get_hor_mov_state() == B_H_M_LEFT) {
-            ball.set_hor_mov_state(B_H_M_RIGHT);
-        } else if (ball.get_hor_mov_state() == B_H_M_RIGHT) {
-            ball.set_hor_mov_state(B_H_M_LEFT);
-        }
-    }
-}
-
 void display() {
     auto current_time = std::chrono::high_resolution_clock::now();
     static auto last_time = current_time;
@@ -63,27 +46,28 @@ void display() {
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
-
     glTranslatef(0.0, 0.0, Z_INITIAL_TRANSLATE);
-    Color cage_color = {1.0, 1.0, 1.0};
-    draw_cage(cage_color);
 
-    if (game_menu.get_state() == G_S_PLAYING) {
-        handle_collisions();
-        ball.render(dt.count());
-        player.render(dt.count());
-        player2.render(dt.count());
-        SDL_Color red = {255, 0, 0, 255};
-        glDisable(GL_DEPTH_TEST);
-        text_renderer->render_text("Player 1: 0", 10, 10, red);
-        text_renderer->render_text("Player 2: 0", 10, 40, red);
-        glEnable(GL_DEPTH_TEST);
+    switch (scene_manager.get_scene()) {
+        case S_MAIN_MENU:
+            scene_manager.render_main_menu(dt.count());
+            break;
+        case S_GAME_LOOP:
+            scene_manager.render_game_loop(dt.count());
+            break;
+        case S_GAME_MENU:
+            scene_manager.render_game_menu(dt.count());
+            break;
+        case S_END_CREDITS:
+            scene_manager.render_credits(dt.count());
+            break;
+        case S_NONE:
+        default:
+            scene_manager.clear_game_data();
+            is_running = false;
+            break;
     }
-
-
-    game_menu.render();
 }
-
 void render_game() {
     srand(static_cast<unsigned>(time(0)));
 
@@ -94,24 +78,18 @@ void render_game() {
     SDL_Window* window = SDL_CreateWindow("Pong game",
                                           SDL_WINDOWPOS_CENTERED,
                                           SDL_WINDOWPOS_CENTERED,
-                                          1920,
-                                          1080,
+                                          WINDOW_WIDTH,
+                                          WINDOW_HEIGHT,
                                           SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
     SDL_GLContext gl_context = SDL_GL_CreateContext(window);
     SDL_GL_MakeCurrent(window, gl_context);
 
-    text_renderer = new TextRenderer(1920, 1080);
 
-    if (!text_renderer->load_font("/usr/share/fonts/TTF/JetBrainsMonoNerdFont-Regular.ttf", 100)) {
-        std::cerr << "Failed to load font" << std::endl;
-        return;
-    }
-
-    bool is_running = true;
+    is_running = true;
     SDL_Event event;
 
     init();
-    game_menu.init(window, gl_context);
+    scene_manager.init();
 
     while (is_running) {
         while (SDL_PollEvent(&event)) {
@@ -120,28 +98,74 @@ void render_game() {
                     is_running = false;
                     break;
                 case SDL_KEYDOWN:
-                    if (game_menu.get_state() == G_S_PLAYING) {
-                        player.manage_key_down_movement(event.key.keysym.sym);
-                        player.manage_key_down_actions(event.key.keysym.sym, ball);
-                        player2.manage_key_down_movement(event.key.keysym.sym);
-                        player2.manage_key_down_actions(event.key.keysym.sym, ball);
+                    if (Player* player1 = dynamic_cast<Player*>(scene_manager.get_game_data()->get_character1())) {
+                        player1->manage_key_down_movement(event.key.keysym.sym);
+                        player1->manage_key_down_actions(event.key.keysym.sym, *scene_manager.get_game_data()->get_ball());
+                    }
+                    if (Player* player2 = dynamic_cast<Player*>(scene_manager.get_game_data()->get_character2())) {
+                        player2->manage_key_down_movement(event.key.keysym.sym);
+                        player2->manage_key_down_actions(event.key.keysym.sym, *scene_manager.get_game_data()->get_ball());
+                    }
+                    if (event.key.keysym.sym == SDLK_ESCAPE) {
+                        if (scene_manager.get_scene() == S_GAME_LOOP)
+                            scene_manager.set_scene(S_GAME_MENU);
+                        else if (scene_manager.get_scene() == S_GAME_MENU)
+                            scene_manager.set_scene(S_GAME_LOOP);
                     }
                     break;
                 case SDL_KEYUP:
-                    if (game_menu.get_state() == G_S_PLAYING) {
-                        player.manage_key_up(event.key.keysym.sym);
-                        player2.manage_key_up(event.key.keysym.sym);
+                    if (Player* player1 = dynamic_cast<Player*>(scene_manager.get_game_data()->get_character1())) {
+                        player1->manage_key_up(event.key.keysym.sym);
+                    }
+                    if (Player* player2 = dynamic_cast<Player*>(scene_manager.get_game_data()->get_character2())) {
+                        player2->manage_key_up(event.key.keysym.sym);
                     }
                     break;
+                case SDL_MOUSEBUTTONDOWN:
+                    if (scene_manager.get_scene() == S_MAIN_MENU || scene_manager.get_scene() == S_GAME_MENU) {
+                        if (event.button.button == SDL_BUTTON_LEFT) {
+                            int x = event.button.x;
+                            int y = event.button.y;
+                            Vec2 gl_coords = text_to_opengl_coords(x, y, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+                            bool start_button_clicked = scene_manager.get_game_data()->get_start_button()->get_collider()->contains(gl_coords);
+                            bool exit_button_clicked = scene_manager.get_game_data()->get_exit_button()->get_collider()->contains(gl_coords);
+                            bool char1_button_clicked = scene_manager.get_game_data()->get_char1_button()->get_collider()->contains(gl_coords);
+                            bool char2_button_clicked = scene_manager.get_game_data()->get_char2_button()->get_collider()->contains(gl_coords);
+
+                            if (start_button_clicked) {
+                                scene_manager.clear_game_data();
+                                scene_manager.init();
+                                scene_manager.set_scene(S_GAME_LOOP);  // Transition to game loop
+                            } else if (exit_button_clicked) {
+                                scene_manager.set_scene(S_NONE);
+                            } else if (char1_button_clicked) {
+                                if (scene_manager.get_game_data()->get_character1()->is_player()) {
+                                    scene_manager.get_game_data()->set_is_char1_player(false);
+                                    scene_manager.get_game_data()->get_char1_button()->set_type(B_T_CPU_1);
+                                } else {
+                                    scene_manager.get_game_data()->set_is_char1_player(true);
+                                    scene_manager.get_game_data()->get_char1_button()->set_type(B_T_PLAYER_1);
+                                }
+                            } else if (char2_button_clicked) {
+                                if (scene_manager.get_game_data()->get_character2()->is_player()) {
+                                    scene_manager.get_game_data()->set_is_char2_player(false);
+                                    scene_manager.get_game_data()->get_char2_button()->set_type(B_T_CPU_2);
+                                } else {
+                                    scene_manager.get_game_data()->set_is_char2_player(true);
+                                    scene_manager.get_game_data()->get_char2_button()->set_type(B_T_PLAYER_2);
+                                }
+                            }
+                        }
+                        break;
+                    }
+
             }
         }
         display();
         SDL_GL_SwapWindow(window);
     }
-    game_menu.cleanup();
 
-    delete text_renderer;
-    text_renderer = nullptr;
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(window);
     SDL_Quit();

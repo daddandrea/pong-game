@@ -6,9 +6,18 @@
 #include <SDL2/SDL_surface.h>
 #include <SDL2/SDL_ttf.h>
 #include <iostream>
+#include <utility>
 
 TextRenderer::TextRenderer(int win_w, int win_h)
-    : m_Font(nullptr), m_win_width(win_w), m_win_height(win_h) {
+    : m_Active_Font(nullptr), m_win_width(win_w), m_win_height(win_h) {
+    if (TTF_WasInit() == 0) {
+        if (TTF_Init() == -1) {
+            std::cerr << "Failed to initialize SDL_ttf: " << TTF_GetError() << std::endl;
+        }
+    }
+}
+TextRenderer::TextRenderer()
+    : m_Active_Font(nullptr), m_win_width(WINDOW_WIDTH), m_win_height(WINDOW_HEIGHT) {
     if (TTF_WasInit() == 0) {
         if (TTF_Init() == -1) {
             std::cerr << "Failed to initialize SDL_ttf: " << TTF_GetError() << std::endl;
@@ -16,27 +25,53 @@ TextRenderer::TextRenderer(int win_w, int win_h)
     }
 }
 TextRenderer::~TextRenderer() {
-    if (m_Font) {
-        TTF_CloseFont(m_Font);
-        m_Font = nullptr;
+    if (m_Active_Font) {
+        TTF_CloseFont(m_Active_Font);
+        m_Active_Font = nullptr;
     }
     TTF_Quit();
 }
-bool TextRenderer::load_font(const std::string& font_path, int font_size) {
-    m_Font = TTF_OpenFont(font_path.c_str(), font_size);
-    if (!m_Font) {
-        std::cerr << "Failed to load font: " << TTF_GetError << std::endl;
-        return false;
+bool TextRenderer::is_font_loaded(const std::string& font_name) const {
+    return m_Fonts.find(font_name) != m_Fonts.end();
+}
+bool TextRenderer::load_font(const std::string& font_name, const std::string& font_path, int font_size) {
+    if (m_Fonts.find(font_name) == m_Fonts.end()) {
+        TTF_Font* new_font = TTF_OpenFont(font_path.c_str(), font_size);
+        if (!new_font) {
+            std::cerr << "Failed to load font: " << font_path << " - " << TTF_GetError() << std::endl;
+            return false;
+        }
+        m_Fonts[font_name] = new_font;
     }
+    m_Active_Font = m_Fonts[font_name];
     return true;
 }
-void TextRenderer::render_text(const std::string& text, int x, int y, SDL_Color color) {
-    if (!m_Font) {
-        std::cerr << "Font not loaded!" << std::endl;
+bool TextRenderer::set_active_font(const std::string& font_name) {
+    auto it = m_Fonts.find(font_name);
+    if (it == m_Fonts.end()) {
+        std::cerr << "Font not loaded: " << font_name << std::endl;
+        return false;
+    }
+
+    m_Active_Font = it->second;
+    return true;
+}
+void TextRenderer::render_text(const std::string& text, float gl_x, float gl_y, SDL_Color color) {
+    float x_ndc = gl_x / get_viewport_half_w();
+    float y_ndc = gl_y / get_viewport_half_h();
+
+    float text_x = ((x_ndc + 1.0f) / 2.0f) * WINDOW_WIDTH;
+    float text_y = ((1.0f - y_ndc) / 2.0f) * WINDOW_HEIGHT;
+
+    int x = static_cast<int>(text_x);
+    int y = static_cast<int>(text_y);
+
+    if (!m_Active_Font) {
+        std::cerr << "No active font loaded!" << std::endl;
         return;
     }
 
-    SDL_Surface* text_surface = TTF_RenderText_Blended(m_Font, text.c_str(), color);
+    SDL_Surface* text_surface = TTF_RenderText_Blended(m_Active_Font, text.c_str(), color);
     if (!text_surface) {
         std::cerr << "Failed to create text surface: " << TTF_GetError() << std::endl;
         return;
@@ -62,10 +97,6 @@ void TextRenderer::render_text(const std::string& text, int x, int y, SDL_Color 
     } else {
         std::cerr << "Warning: text surface is not 32-bit." << std::endl;
     }
-
-    std::cerr << "BytesPerPixel=" << (int)conv_surface->format->BytesPerPixel << "\n";
-    std::cerr << "Rmask=0x" << std::hex << conv_surface->format->Rmask << std::dec << "\n";
-    std::cerr << "w=" << conv_surface->w << ", h=" << conv_surface->h << "\n";
 
     glTexImage2D(
         GL_TEXTURE_2D, 

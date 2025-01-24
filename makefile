@@ -1,21 +1,29 @@
-# Compiler and linker settings
+# Compiler and flags
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -g -Iinclude -Iexternal/imgui `pkg-config --cflags sdl2 SDL2_ttf freetype2`
-LDFLAGS = `pkg-config --libs sdl2 SDL2_ttf freetype2` -lGL -lGLU -ldl -lfreetype
+CXXFLAGS = -std=c++17 -Wall -Wextra -g -Iinclude
+LDFLAGS_LINUX = `pkg-config --libs sdl2 SDL2_ttf` -lGL -lGLU -ldl -lfreetype
+LDFLAGS_WINDOWS = -lmingw32 -lSDL2main -lSDL2 -lSDL2_ttf -lopengl32 -lglu32
 
 # Source files and object files
-SRC = src/ball.cpp src/game.cpp src/game_object.cpp src/main.cpp src/character.cpp src/player.cpp src/collider.cpp src/menu.cpp src/text_renderer.cpp
-IMGUI_SRC = external/imgui/imgui.cpp external/imgui/imgui_demo.cpp external/imgui/imgui_draw.cpp external/imgui/imgui_tables.cpp external/imgui/imgui_widgets.cpp external/imgui/imgui_impl_sdl2.cpp external/imgui/imgui_impl_opengl2.cpp
+SRC = src/ball.cpp src/game.cpp src/game_object.cpp src/main.cpp src/character.cpp src/player.cpp src/collider.cpp src/text_renderer.cpp src/cpu.cpp src/essentials.cpp src/scene_manager.cpp src/debugger.cpp src/button.cpp
 OBJ_DIR = objects
-OBJ = $(patsubst src/%.cpp,$(OBJ_DIR)/%.o,$(SRC)) $(patsubst external/imgui/%.cpp,$(OBJ_DIR)/%.o,$(IMGUI_SRC))
+OBJ = $(patsubst src/%.cpp,$(OBJ_DIR)/%.o,$(SRC))
 
 # Header files for dependency tracking
-HEADERS = $(wildcard include/*.h) $(wildcard external/imgui/*.h)
+HEADERS = $(wildcard include/*.h)
 
 # Output binary
 TARGET = Pong
 
-# Make rules
+# Detect platform
+OS := $(shell uname -s)
+ifeq ($(OS),Linux)
+	LDFLAGS = $(LDFLAGS_LINUX)
+else
+	LDFLAGS = $(LDFLAGS_WINDOWS)
+endif
+
+# Default rule
 all: $(TARGET)
 
 $(TARGET): $(OBJ)
@@ -23,9 +31,6 @@ $(TARGET): $(OBJ)
 
 # Compile .cpp files into .o files with header dependencies
 $(OBJ_DIR)/%.o: src/%.cpp $(HEADERS) | $(OBJ_DIR)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-$(OBJ_DIR)/%.o: external/imgui/%.cpp $(HEADERS) | $(OBJ_DIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # Clean build

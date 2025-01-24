@@ -1,7 +1,9 @@
 #pragma once
 
 #include "game_object.h"
+#include "character.h"
 #include "game.h"
+#include "text_renderer.h"
 #include <ostream>
 
 #define BALL_DEFAULT_X 0.0f
@@ -24,7 +26,6 @@ private:
     void update_movement(float dt) override;
     void update_collisions();
 public:
-    void draw_debug_info() override;
     float get_radius();
     BallHorizontalMovementState get_hor_mov_state();
     void set_hor_mov_state(BallHorizontalMovementState state);
@@ -32,6 +33,7 @@ public:
     void set_ver_mov_state(BallVerticalMovementState state);
     void incr_speed() override;
     void render(float dt) override;
+    void bounce_from_parry(Character& character);
     Ball();
     ~Ball() = default;
 };

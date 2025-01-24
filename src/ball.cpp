@@ -25,10 +25,6 @@ std::ostream& operator<<(std::ostream& os, BallVerticalMovementState state) {
     return os;
 }
 
-void Ball::draw_debug_info() {
-
-}
-
 float Ball::get_radius() {
     return this->r;
 }
@@ -71,21 +67,19 @@ void Ball::update_collisions() {
             break;
         case CAGE_SIDE_TOP:
             this->ver_mov_state = B_V_M_DOWN;
-            this->set_pos(Vec2 {this->pos.x, CAGE_HALF_HEIGHT - MARGIN - BALL_RADIUS});
+            this->set_pos(Vec2 {this->pos.x, get_cage_half_h() - MARGIN - BALL_RADIUS});
             break;
         case CAGE_SIDE_BOTTOM:
             this->ver_mov_state = B_V_M_UP;
-            this->set_pos(Vec2 {this->pos.x, -(CAGE_HALF_HEIGHT - MARGIN - BALL_RADIUS)});
+            this->set_pos(Vec2 {this->pos.x, -(get_cage_half_h() - MARGIN - BALL_RADIUS)});
             break;
         case CAGE_SIDE_LEFT:
             this->hor_mov_state = B_H_M_STATIONARY;
             this->ver_mov_state = B_V_M_STATIONARY;
-            std::cout << "Point for RIGHT" << std::endl;
             break;
         case CAGE_SIDE_RIGHT:
             this->hor_mov_state = B_H_M_STATIONARY;
             this->ver_mov_state = B_V_M_STATIONARY;
-            std::cout << "Point for LEFT" << std::endl;
             break;
     }
 }
@@ -106,16 +100,32 @@ void Ball::update_movement(float dt) {
     }
 }
 void Ball::render(float dt) {
-    glPushMatrix();
-    draw_ball();
-    draw_debug_info();
-    glPopMatrix();
     update_collisions();
     update_movement(dt);
+
+    glPushMatrix();
+    draw_ball();
+    glPopMatrix();
+
     if (this->collider) {
         this->collider->set_position(this->pos);
     }
 }
+
+void Ball::bounce_from_parry(Character& character) {
+    if (hor_mov_state == B_H_M_LEFT)
+        hor_mov_state = B_H_M_RIGHT;
+    else
+        hor_mov_state = B_H_M_LEFT;
+
+    if (character.get_ver_mov_state() == C_V_M_MOVING_UP)
+        ver_mov_state = B_V_M_UP;
+    else if (character.get_ver_mov_state() == C_V_M_MOVING_DOWN)
+        ver_mov_state = B_V_M_DOWN;
+
+    incr_speed();
+}
+
 Ball::Ball() : r(BALL_RADIUS), hor_mov_state(B_H_M_STATIONARY), ver_mov_state(B_V_M_STATIONARY) {
     this->collider = std::make_unique<CircleCollider>(
         pos,

@@ -8,6 +8,7 @@
 
 class Collider {
 public:
+    virtual bool contains(const Vec2& point) const = 0;
     virtual bool is_colliding(const Collider& other) const = 0;
     virtual CageSide is_colliding_with_cage() const = 0;
     virtual bool is_in_parry_range(const Collider& other) const = 0;
@@ -22,6 +23,7 @@ private:
     float half_width;
     float half_height;
 public:
+    bool contains(const Vec2& point) const override;
     bool is_colliding(const Collider& other) const override;
     CageSide is_colliding_with_cage() const override;
     bool is_in_parry_range(const Collider& other) const override;
@@ -39,6 +41,7 @@ private:
     float radius;
 
 public:
+    bool contains(const Vec2& point) const override;
     bool is_colliding(const Collider& other) const override;
     CageSide is_colliding_with_cage() const override;
     bool is_in_parry_range(const Collider& other) const override;
